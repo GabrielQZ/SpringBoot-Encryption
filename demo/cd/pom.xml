@@ -19,6 +19,7 @@
 	</properties>
 
 	<dependencies>
+	<!-- typical spring depen. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -55,17 +56,10 @@
 		</dependency>
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
+			<artifactId>jjwt-jackson</artifactId> 
 			<version>0.11.2</version>
 			<scope>runtime</scope>
 		</dependency>
-		<!--	//WORK WITH JSON DATA EFFICIENTLY AND AFFECTIVELY-->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20201115</version>
-		</dependency>
-	</dependencies>
 
 	<build>
 		<plugins>

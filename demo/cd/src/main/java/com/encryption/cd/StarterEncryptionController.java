@@ -2,11 +2,13 @@ package com.encryption.cd;
 
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
+import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -19,8 +21,11 @@ import java.util.HashMap;
 public class StarterEncryptionController {
 
     //create database
+    HashMap<String, User> database = new HashMap<>();
 
     //env import
+    @Autowired
+    Environment env;
 
     @GetMapping("/test")
     public String testGet() {
@@ -30,36 +35,76 @@ public class StarterEncryptionController {
     @GetMapping("/all")
     public Object getAllUsers () {
 
-        return "temp";// return database
+        return database;
     }
     //route for signup test (bcrypt hash)
     @PostMapping("/signup")
-    public String signUp(
-            //grab userdata from body
-    ) {
+    public User signUp( @RequestBody User user ) {
+        //hash password
+        String hashedPassword = BCrypt.hashpw(user.password, BCrypt.gensalt());
+        user.setId();
+        user.password = hashedPassword;
 
+        //store in Db
+        database.put(user.username, user);
 
-        return "temp";
+        return user;
     }
 
     //route for sign-in test (bcrypt compare + jwt)
     @PutMapping("/signin")
-    public String signIn(
-            //grab userdata from body
-    ) {
+    public String signIn( @RequestBody User user ) {
 
+        try {
+            User loggingInUser = database.get(user.username);
+            String unhashedPass = user.password;
+            String hashedPass = loggingInUser.password;
+            boolean credentialsMatch = BCrypt.checkpw(unhashedPass, hashedPass);
+            if (!credentialsMatch)
+                return "login failed: credentials don't match";
+            //create JWT
+            Instant now = Instant.now();
 
-        return "temp";
+            Date issuedAt = Date.from(now);
+            Date expiresAt = Date.from(now.plus(40, ChronoUnit.SECONDS));
+
+            SecretKey key = Keys.hmacShaKeyFor(env.getProperty("jwt.key").getBytes());
+
+            String jwt = Jwts
+                    .builder()
+                    .setSubject("user-auth")
+                    .setIssuedAt(issuedAt)
+                    .setExpiration(expiresAt)
+                    .claim("user", loggingInUser.id)
+                    .signWith(key)
+                    .compact();
+
+            return jwt;
+
+        } catch ( Exception e) {
+            e.printStackTrace();
+            return e.getMessage();
+        }
 
     }
 
     @GetMapping("/testjwt")
     public String testJWT (
-            //grab jwt from body
+         @RequestBody String jwt
     ) {
+        try {
+            SecretKey key = Keys.hmacShaKeyFor(env.getProperty("jwt.key").getBytes());
 
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(jwt);
 
-        return "temp";
+            return "valid JWT!";
+        } catch (Exception e ) {
+            System.out.println(e.getMessage());
+            return "invalid JWT";
+        }
     }
 
 }
